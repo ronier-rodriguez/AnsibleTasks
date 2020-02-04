@@ -1,0 +1,48 @@
+---
+# tasks file for jenkins-pipeline
+# Modified by Ronier Rodríguez
+- name: Create a Docker volume for the Jenkins Data
+  docker_volume:
+    name: JenkinsData
+
+- name: Launch Jenkins container
+  docker_container:
+    name: JenkinsAutoinstallTest
+    image: jenkins/jenkins:lts
+    restart_policy: always
+    keep_volumes: yes
+    volumes:
+      - "JenkinsData:/var/jenkins_home"
+    state: started
+    env:
+      Djenkins.install.runSetupWizard="false"
+    published_ports:
+      - "8080:8080"
+      - "50000:50000"
+
+- name: Copy files to Docker host
+  copy:
+    src: "{{ item }}"
+    dest: /tmp/
+    owner: vagrant
+    group: vagrant
+  with_items:
+    - security.groovy
+    - plugins.txt
+
+- name: Copy auto starter file to Docker container
+  command: docker cp /tmp/security.groovy JenkinsAutoinstallTest:/usr/share/jenkins/ref/init.groovy.d/security.groovy
+
+- name: Install all plugins
+  shell: docker exec -i JenkinsAutoinstallTest install-plugins.sh < /tmp/plugins.txt
+
+- name: Delete conf files from Docker host
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - /tmp/security.groovy
+    - /tmp/plugins.txt
+
+- name: Restart Jenkins so it loads the plugins
+  command: docker restart JenkinsAutoinstallTest

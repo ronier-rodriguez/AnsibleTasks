@@ -1,0 +1,23 @@
+---
+# tasks file for mariadb install
+# Modified by Ronier Rodríguez
+- name: Create a Docker volume for the DB
+  docker_volume:
+    name: MariadbData
+
+- name: Launch mariadb container
+  docker_container:
+    name: MariaDB
+    image: mariadb:10.2.14
+    restart_policy: always
+    keep_volumes: yes
+    volumes:
+      - "MariadbData:/var/lib/mysql"
+    env:
+      MYSQL_ROOT_PASSWORD="{{ MYSQL_ROOT_PASSWORD }}"
+      MYSQL_DATABASE="{{ MYSQL_DATABASE }}"
+      MYSQL_USER="{{ MYSQL_USER }}"
+      MYSQL_PASSWORD="{{ MYSQL_PASSWORD }}"
+    state: started
+    published_ports:
+      - "3306:3306"
